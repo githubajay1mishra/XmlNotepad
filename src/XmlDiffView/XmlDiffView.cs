@@ -1958,34 +1958,45 @@ namespace Microsoft.XmlDiffPatch
 
             // Populate an xml reader with the baseline data.
             this.diffgram.Seek(0, SeekOrigin.Begin);
-            XmlTextReader sourceReader;
+
+            using (XmlTextReader sourceReader = CreateXmlTextReaderFor(sourceXmlFile, fragment))
+            {
+                sourceReader.XmlResolver = null;
+                this.Load(
+                    sourceReader,
+                    new XmlTextReader(this.diffgram));
+            }
+            
+        }
+        /// <summary>
+        /// Creates an XmlText Reader input file
+        /// </summary>
+        /// <param name="sourceXmlFile">the baseline file</param>
+        /// <param name="fragment">the file is an Xml fragment</param>
+        /// <returns></returns>
+        private XmlTextReader CreateXmlTextReaderFor(string sourceXmlFile,
+            bool fragment)
+        {
+            
             if (fragment)
             {
                 NameTable nt = new NameTable();
-                ////Todo: break up the following overly
-                ////      complex statement to avoid StyleCop
-                ////      complaints.
-                sourceReader = new XmlTextReader(
+                XmlParserContext xmlParserContext = new XmlParserContext(
+                    nt,
+                    new XmlNamespaceManager(nt),
+                    string.Empty,
+                    XmlSpace.Default);
+                
+                return new XmlTextReader(
                     new FileStream(
                         sourceXmlFile,
                         FileMode.Open,
                         FileAccess.Read),
-                    XmlNodeType.Element,
-                    new XmlParserContext(
-                        nt,
-                        new XmlNamespaceManager(nt),
-                        string.Empty,
-                        XmlSpace.Default));
-            }
-            else
-            {
-                sourceReader = new XmlTextReader(sourceXmlFile);
+                    XmlNodeType.Element, 
+                    xmlParserContext);
             }
 
-            sourceReader.XmlResolver = null;
-            this.Load(
-                sourceReader,
-                new XmlTextReader(this.diffgram));
+            return new XmlTextReader(sourceXmlFile); ;
         }
 
         /// <summary>
