@@ -15,15 +15,6 @@ namespace XmlNotepadBuildTasks
         [Required]
         public string WixFile { get; set; }
 
-        [Required]
-        public string HelpFile { get; set; }
-
-        [Required]
-        public string UpdatesFile { get; set; }
-
-        [Required]
-        public string ReadmeFile { get; set; }
-
         public override bool Execute()
         {
             if (!System.IO.File.Exists(this.VersionFile))
@@ -60,11 +51,7 @@ namespace XmlNotepadBuildTasks
                     return false;
                 }
 
-                bool result = UpdateWixVersion(v);
-                result &= UpdateHelpFile(v);
-                result &= CheckUpdatesFile(v);
-                result &= UpdateReadmeFile(v);
-                return result;
+                return UpdateWixVersion(v);
             }
         }
 
@@ -85,107 +72,12 @@ namespace XmlNotepadBuildTasks
                 {
                     product.SetAttributeValue("Version", v.ToString());
                     doc.Save(this.WixFile);
-                    Log.LogMessage(MessageImportance.High, "Updated version number in : " + this.WixFile + " to match Version.cs version " + v.ToString());
+                    Log.LogMessage("Updated version number in : " + this.WixFile + " to match Version.cs version " + v.ToString());
                 }
             }
             catch (Exception ex)
             {
                 Log.LogError("WIX file edit failed: " + ex.Message);
-                return false;
-            }
-            return true;
-        }
-
-        private bool UpdateHelpFile(Version v)
-        {
-            if (!System.IO.File.Exists(this.HelpFile))
-            {
-                Log.LogError("Help file not found: " + this.HelpFile);
-                return false;
-            }
-
-            try
-            {
-                string[] lines = System.IO.File.ReadAllLines(this.HelpFile);
-                using (StreamWriter writer = new StreamWriter(this.HelpFile))
-                {
-                    foreach (var line in lines)
-                    {
-                        string outline = line;
-                        //             Version 2.8.0.7
-                        if (line.Trim().StartsWith("Version"))
-                        {
-                            int i = line.IndexOf("Version") + 8;
-                            outline = line.Substring(0, i) + v.ToString();
-                            Log.LogMessage(MessageImportance.High, "Updated version number in : " + this.HelpFile + " to match Version.cs version " + v.ToString());
-                        }
-                        writer.WriteLine(outline);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.LogError("HelpFile file edit failed: " + ex.Message);
-                return false;
-            }
-            return true;
-        }
-
-        private bool CheckUpdatesFile(Version v)
-        {
-            if (!System.IO.File.Exists(this.UpdatesFile))
-            {
-                Log.LogError("Updates.xml file not found: " + this.UpdatesFile);
-                return false;
-            }
-
-            try
-            {
-                XDocument doc = XDocument.Load(this.UpdatesFile);
-                XNamespace ns = doc.Root.Name.Namespace;
-                XElement firstVersion = doc.Root.Element("version");
-                if (v.ToString() != (string)firstVersion.Attribute("number"))
-                {
-                    Log.LogMessage(MessageImportance.High, "Please remember to add new version section to : " + this.UpdatesFile);
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.LogError("WIX file edit failed: " + ex.Message);
-                return false;
-            }
-            return true;
-        }
-
-        private bool UpdateReadmeFile(Version v)
-        {
-            if (!System.IO.File.Exists(this.ReadmeFile))
-            {
-                Log.LogError("ReadmeFile not found: " + this.ReadmeFile);
-                return false;
-            }
-
-            try
-            {
-                XDocument doc = XDocument.Load(this.ReadmeFile);
-                XNamespace ns = XNamespace.Get("http://www.w3.org/1999/xhtml");
-                foreach (var span in doc.Root.Descendants(ns + "span"))
-                {
-                    if ((string)span.Attribute("class") == "version")
-                    {
-                        string newValue = "Version " + v.ToString();
-                        if (newValue != (string)span.Value)
-                        {
-                            span.Value = newValue;
-                            doc.Save(this.ReadmeFile);
-                            Log.LogMessage(MessageImportance.High, "Updated version number in : " + this.ReadmeFile + " to match Version.cs version " + v.ToString());
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.LogError("ReadmeFile file edit failed: " + ex.Message);
                 return false;
             }
             return true;
